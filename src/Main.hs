@@ -12,6 +12,15 @@ import Control.Monad (when, unless)
 import Board
 import Drawing
 
+data GameState =
+    GameState { tileMapState :: TileMap
+              }
+
+initGameState :: IO GameState
+initGameState = do
+    randomTMap <- randomTileMap
+    return $ GameState randomTMap
+
 windowWidth, windowHeight :: Int
 windowWidth  =  1000
 windowHeight =  800
@@ -19,21 +28,22 @@ windowHeight =  800
 main :: IO ()
 main = do
     glossState <- initState
+    gameState <- initGameState
     withWindow windowWidth windowHeight "Civ" $ \win -> do
-          loop glossState win
+          loop glossState gameState win
           exitSuccess
-    where loop glossState window =  do
+  where loop glossState gameState window = do
             threadDelay 20000
             pollEvents
-            renderFrame window glossState
+            renderFrame window glossState gameState
             k <- keyIsPressed window Key'Escape
-            unless k $ loop glossState window
+            unless k $ loop glossState gameState window
 
-renderFrame window glossState = do
-     randomTMap <- randomTileMap
+renderFrame window glossState gameState = do
+     let tMap = tileMapState gameState
      displayPicture (windowWidth, windowHeight) white glossState 1.0
       $ scale 0.4 0.4
-      $ pictures (map (tilePicture randomTMap) tiles)
+      $ pictures (map (tilePicture tMap) tiles)
      swapBuffers window
 
 withWindow :: Int -> Int -> String -> (GLFW.Window -> IO ()) -> IO ()

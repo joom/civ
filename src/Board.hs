@@ -34,12 +34,6 @@ randomTerrain = toEnum <$> randomRIO (fromEnum min, fromEnum max)
   where min = minBound :: Terrain
         max = maxBound :: Terrain
 
-randomTerrains :: IO [Terrain]
-randomTerrains = do
-  r <- randomTerrain
-  rs <- randomTerrains
-  return (r:rs)
-
 randomTileMap :: IO TileMap
 randomTileMap = do
   r <- replicateM (tileCount board) randomTerrain
