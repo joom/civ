@@ -63,6 +63,8 @@ data Improvement =
   | Well
     deriving (Show, Eq, Enum, Bounded)
 
+instance Arbitrary Terrain where
+    arbitrary = arbitraryBoundedEnum
 instance Arbitrary Resource where
     arbitrary = arbitraryBoundedEnum
 instance Arbitrary Unit where
@@ -80,7 +82,7 @@ numTiles :: Int
 numTiles = tileCount board
 
 randomTile :: Gen Tile
-randomTile = Tile <$> arbitraryBoundedEnum
+randomTile = Tile <$> arbitrary
                   <*> arbitrary
                   <*> pure Nothing
                   <*> pure Nothing
@@ -88,20 +90,21 @@ randomTile = Tile <$> arbitraryBoundedEnum
 -- | Is supposed to output a better map in the future.
 -- e.g.: less desert next to sea, less desert in poles
 -- less hills/mountain next to sea, more tundra in poles
-educatedTileMap :: TileMap -> IO TileMap
-educatedTileMap tMap = do
-    let newMap = M.mapWithKey educated tMap
-    return newMap
+educatedTileMap :: TileMap -> M.LGridMap HexHexGrid (Gen Tile)
+educatedTileMap tMap = M.mapWithKey educated tMap
   where
-    educated key tile@(Tile t r u i) = Tile newTerrain r u i
-      where
-        surrounding = neighbours board key
-        terrains = map (tileTerrain . (tMap !)) surrounding
-        newTerrain = if length surrounding < 6
-                     then Grassland else t
+    educated :: TileCoord -> Tile -> Gen Tile
+    educated key (Tile t r u i) = do
+      t' <- if length surrounding < 6 then elements [Grassland, Plains] else return t
+      return $ Tile t' r u i
+        where
+          surrounding = neighbours board key
+          terrains = map (tileTerrain . (tMap !)) surrounding
 
+sequenceMap :: Monad m => M.LGridMap HexHexGrid (m Tile) -> m TileMap
+sequenceMap gMap = M.lazyGridMap board `liftM` (mapM snd . M.toList) gMap
 
 randomTileMap :: IO TileMap
 randomTileMap = do
-  r <- generate $ infiniteListOf randomTile
-  educatedTileMap $ M.lazyGridMap board r
+  init <- M.lazyGridMap board `liftM` (generate . infiniteListOf) randomTile
+  (generate . sequenceMap . educatedTileMap) init
