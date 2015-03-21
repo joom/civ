@@ -34,6 +34,7 @@ tileView t = color tc
                Grassland -> makeColor (1/255)   (166/255) (17/255)  1  -- grass
                Hill      -> makeColor (102/255) (51/255)  (0/255)   1  -- brown
                Plains    -> makeColor (215/255) (175/255) (114/255) 1  -- soil
+               Tundra    -> greyN 0.8
 
 resourceView :: Maybe Resource -> Picture
 resourceView Nothing = Blank
@@ -45,6 +46,7 @@ resourceView (Just r) =
       Aluminum -> color white $ thickCircle s s
       Oil      -> color black $ thickCircle s s
       Uranium  -> color green $ thickCircle s s
+      _        -> Blank
   where s = 60
 
 bitmaps :: IO [Picture]

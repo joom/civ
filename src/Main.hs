@@ -58,10 +58,10 @@ moveMap b4 GameState{..} i =
 
 renderFrame window glossState GameState{..} = do
      let (x, y) = mapPosition
-     displayPicture (windowWidth, windowHeight) seaColor glossState 1.0
-      $ translate x y
-      $ scale 0.4 0.4
-      $ pictures (map (tilePicture tileMapState) tiles)
+     let views = translate x y
+                 $ scale 0.4 0.4
+                 $ pictures (map (tilePicture tileMapState) tiles)
+     displayPicture (windowWidth, windowHeight) seaColor glossState 1.0 views
      swapBuffers window
   where
     seaColor = makeColorI 10 105 148 1

@@ -26,15 +26,27 @@ data Terrain =
   | Grassland
   | Hill
   | Plains
+  | Tundra
     deriving (Show, Eq, Enum, Bounded)
 
 data Resource =
+  -- Strategic resources
     Horses
   | Iron
   | Coal
   | Aluminum
   | Oil
   | Uranium
+  -- Luxury resources
+  | Cotton
+  | Spices
+  | Sugar
+  | Furs
+  | Ivory
+  | Silk
+  -- Bonus resources
+  | Wheat
+  | Cattle
     deriving (Show, Eq, Enum, Bounded)
 
 data Unit =
@@ -73,7 +85,23 @@ randomTile = Tile <$> arbitraryBoundedEnum
                   <*> pure Nothing
                   <*> pure Nothing
 
+-- | Is supposed to output a better map in the future.
+-- e.g.: less desert next to sea, less desert in poles
+-- less hills/mountain next to sea, more tundra in poles
+educatedTileMap :: TileMap -> IO TileMap
+educatedTileMap tMap = do
+    let newMap = M.mapWithKey educated tMap
+    return newMap
+  where
+    educated key tile@(Tile t r u i) = Tile newTerrain r u i
+      where
+        surrounding = neighbours board key
+        terrains = map (tileTerrain . (tMap !)) surrounding
+        newTerrain = if length surrounding < 6
+                     then Grassland else t
+
+
 randomTileMap :: IO TileMap
 randomTileMap = do
   r <- generate $ infiniteListOf randomTile
-  return $ M.lazyGridMap board r
+  educatedTileMap $ M.lazyGridMap board r
