@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PackageImports, RecordWildCards #-}
 module Main where
 
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -14,12 +14,13 @@ import Drawing
 
 data GameState =
     GameState { tileMapState :: TileMap
+              , mapPosition  :: (Float, Float)
               }
 
 initGameState :: IO GameState
 initGameState = do
     randomTMap <- randomTileMap
-    return $ GameState randomTMap
+    return $ GameState randomTMap (0,0)
 
 windowWidth, windowHeight :: Int
 windowWidth  = 1000
@@ -35,16 +36,35 @@ main = do
   where loop glossState gameState window = do
             threadDelay 20000
             pollEvents
-            renderFrame window glossState gameState
             k <- keyIsPressed window Key'Escape
-            unless k $ loop glossState gameState window
+            l <- keyIsPressed window Key'Left
+            r <- keyIsPressed window Key'Right
+            u <- keyIsPressed window Key'Up
+            d <- keyIsPressed window Key'Down
+            let newState = moveMap (l,r,u,d) gameState 10
+            renderFrame window glossState newState
+            unless k $ loop glossState newState window
 
-renderFrame window glossState gameState = do
-     let tMap = tileMapState gameState
-     displayPicture (windowWidth, windowHeight) white glossState 1.0
+-- | Moves map to the opposite direction of the key.
+moveMap :: (Bool, Bool, Bool, Bool) -> GameState -> Float -> GameState
+moveMap b4 GameState{..} i =
+    GameState tileMapState (addOffset b4 mapPosition i)
+  where
+    addOffset (True, _, _, _)              (x, y) i = (x + i, y)
+    addOffset (_, True, _, _)              (x, y) i = (x - i, y)
+    addOffset (_, _, True, _)              (x, y) i = (x, y - i)
+    addOffset (_, _, _, True)              (x, y) i = (x, y + i)
+    addOffset (False, False, False, False) (x, y) _ = (x, y)
+
+renderFrame window glossState GameState{..} = do
+     let (x, y) = mapPosition
+     displayPicture (windowWidth, windowHeight) seaColor glossState 1.0
+      $ translate x y
       $ scale 0.4 0.4
-      $ pictures (map (tilePicture tMap) tiles)
+      $ pictures (map (tilePicture tileMapState) tiles)
      swapBuffers window
+  where
+    seaColor = makeColorI 10 105 148 1
 
 withWindow :: Int -> Int -> String -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do
