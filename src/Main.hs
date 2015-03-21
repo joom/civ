@@ -22,13 +22,13 @@ initGameState = do
     return $ GameState randomTMap
 
 windowWidth, windowHeight :: Int
-windowWidth  =  1000
-windowHeight =  800
+windowWidth  = 1000
+windowHeight = 800
 
 main :: IO ()
 main = do
     glossState <- initState
-    gameState <- initGameState
+    gameState  <- initGameState
     withWindow windowWidth windowHeight "Civ" $ \win -> do
           loop glossState gameState win
           exitSuccess
