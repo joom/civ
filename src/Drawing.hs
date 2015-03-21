@@ -20,8 +20,9 @@ tilePicture :: TileMap -> TileCoord -> Picture
 tilePicture tMap t =
     translate x y
     $ pictures [ tileView tile hexagon
-               , scale 0.2 0.2 $ (resourceView . tileResource) tile
+               , (resourceView . tileResource) tile
                , (unitView . tileUnit) tile
+               , (improvementView . tileImprovement) tile
                ]
   where
     tile = tMap ! t
@@ -48,16 +49,27 @@ resourceView (Just r) =
       Oil      -> color black $ thickCircle s s
       Uranium  -> color green $ thickCircle s s
       _        -> Blank
-  where s = 60
+  where s = 12
 
 unitView :: Maybe Unit -> Picture
 unitView Nothing = Blank
 unitView (Just u) =
     case u of
-      Settler -> color red $ thickCircle s s
-      Worker  -> color red $ thickCircle s s
+      Settler -> color blue $ thickCircle s s
+      Worker  -> color red  $ thickCircle s s
       _       -> Blank
-  where s = 90
+  where s = 50
+
+improvementView :: Maybe Improvement -> Picture
+improvementView Nothing = Blank
+improvementView (Just i) =
+    case i of
+      City    -> color black  $ thickCircle s s
+      Farm    -> color yellow $ thickCircle s s
+      Pasture -> color yellow $ thickCircle s s
+      Mine    -> color yellow $ thickCircle s s
+      Well    -> color yellow $ thickCircle s s
+  where s = 20
 
 bitmaps :: IO [Picture]
 bitmaps = sequence [

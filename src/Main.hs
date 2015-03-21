@@ -23,8 +23,9 @@ initGameState = do
     -- example units added
     let tMap = replaceUnit (0,0) (Just Settler)
                $ replaceUnit (0,1) (Just Worker)
+               $ replaceImprovement (1,0) (Just City)
                $ randomTMap
-    return $ GameState randomTMap (0,0)
+    return $ GameState tMap (0,0)
 
 windowWidth, windowHeight :: Int
 windowWidth  = 1000

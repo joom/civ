@@ -57,7 +57,8 @@ data Unit =
     deriving (Show, Eq, Enum, Bounded)
 
 data Improvement =
-    Farm
+    City
+  | Farm
   | Pasture
   | Mine
   | Well
@@ -120,3 +121,8 @@ replaceUnit :: TileCoord -> Maybe Unit -> TileMap -> TileMap
 replaceUnit c u tMap = M.insert c newTile tMap
   where
     newTile = (tMap ! c) { tileUnit = u  }
+
+replaceImprovement :: TileCoord -> Maybe Improvement -> TileMap -> TileMap
+replaceImprovement c i tMap = M.insert c newTile tMap
+  where
+    newTile = (tMap ! c) { tileImprovement = i  }
