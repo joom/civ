@@ -21,6 +21,7 @@ tilePicture tMap t =
     translate x y
     $ pictures [ tileView tile hexagon
                , scale 0.2 0.2 $ (resourceView . tileResource) tile
+               , (unitView . tileUnit) tile
                ]
   where
     tile = tMap ! t
@@ -48,6 +49,15 @@ resourceView (Just r) =
       Uranium  -> color green $ thickCircle s s
       _        -> Blank
   where s = 60
+
+unitView :: Maybe Unit -> Picture
+unitView Nothing = Blank
+unitView (Just u) =
+    case u of
+      Settler -> color red $ thickCircle s s
+      Worker  -> color red $ thickCircle s s
+      _       -> Blank
+  where s = 90
 
 bitmaps :: IO [Picture]
 bitmaps = sequence [

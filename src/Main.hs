@@ -20,6 +20,10 @@ data GameState =
 initGameState :: IO GameState
 initGameState = do
     randomTMap <- randomTileMap
+    -- example units added
+    let tMap = replaceUnit (0,0) (Just Settler)
+               $ replaceUnit (0,1) (Just Worker)
+               $ randomTMap
     return $ GameState randomTMap (0,0)
 
 windowWidth, windowHeight :: Int
