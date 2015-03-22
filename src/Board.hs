@@ -2,6 +2,7 @@ module Board where
 
 import Control.Monad
 import Control.Applicative
+import Data.Maybe
 import Math.Geometry.Grid.Hexagonal
 import Math.Geometry.GridInternal
 import Math.Geometry.GridMap ((!))
@@ -117,12 +118,31 @@ randomTileMap = do
   init <- M.lazyGridMap board `liftM` (generate . infiniteListOf) randomTile
   (generate . sequenceMap . educatedTileMap) init
 
-replaceUnit :: TileCoord -> Maybe Unit -> TileMap -> TileMap
-replaceUnit c u tMap = M.insert c newTile tMap
-  where
-    newTile = (tMap ! c) { tileUnit = u  }
+-- Tile content change functions
 
 replaceImprovement :: TileCoord -> Maybe Improvement -> TileMap -> TileMap
 replaceImprovement c i tMap = M.insert c newTile tMap
   where
     newTile = (tMap ! c) { tileImprovement = i  }
+
+replaceUnit :: TileCoord -> Maybe Unit -> TileMap -> TileMap
+replaceUnit c u tMap = M.insert c newTile tMap
+  where
+    newTile = (tMap ! c) { tileUnit = u  }
+
+-- | Ignores the unit in `to`, overwrites it. Use with caution.
+-- Always check if `unitExists` in `to`.
+moveUnit :: TileCoord -> TileCoord -> TileMap -> TileMap
+moveUnit from to tMap =
+    replaceUnit from unit $ replaceUnit to Nothing tMap
+  where
+    unit = tileUnit (tMap ! from)
+
+unitExists :: TileCoord -> TileMap -> Bool
+unitExists c tMap = (isJust . tileUnit) (tMap ! c)
+
+allUnits :: TileMap -> [Unit]
+allUnits = mapMaybe (tileUnit . snd) . M.toList
+
+allCities :: TileMap -> [Improvement]
+allCities = filter (== City) . mapMaybe (tileImprovement . snd) . M.toList
