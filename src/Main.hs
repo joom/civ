@@ -18,6 +18,7 @@ import Drawing
 data GameState =
     GameState { tileMapState :: TileMap
               , mapPosition  :: (Float, Float)
+              , unitPosition :: TileCoord
               }
 
 initGameState :: IO GameState
@@ -25,10 +26,9 @@ initGameState = do
     randomTMap <- randomTileMap
     -- example units added
     let tMap = replaceUnit (0,0) (Just Settler)
-               $ replaceUnit (0,1) (Just Worker)
-               $ replaceImprovement (1,0) (Just City)
-               $ randomTMap
-    return $ GameState tMap (0,0)
+               $ replaceImprovement (0,0) (Just City)
+               randomTMap
+    return $ GameState tMap (0,0) (0,0)
 
 windowWidth, windowHeight :: Int
 windowWidth  = 1000
@@ -52,7 +52,12 @@ main = do
         pressedArrow <- pressedAmong window [Key'Left, Key'Right, Key'Up, Key'Down]
         pressedUnitKeys <- pressedAmong window [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
         let newState = moveMap pressedArrow 10
-                       $ moveUnitWithKey (0,0) pressedUnitKeys gameState
+                       $ moveUnitWithKey (unitPosition gameState) pressedUnitKeys
+                       gameState
+        -- debugging
+        when (unitPosition newState /= unitPosition gameState)
+             (print $ unitPosition newState)
+
         renderFrame window glossState newState
         unless k $ loop glossState newState window
 
@@ -80,7 +85,10 @@ keyToDirection k =
 
 moveUnitWithKey :: TileCoord -> [Key] -> GameState -> GameState
 moveUnitWithKey c [k] gS@GameState{..} =
-    gS { tileMapState = moveUnitToDirection c (keyToDirection k) tileMapState }
+    gS { tileMapState = moveUnitToDirection c dir tileMapState
+       , unitPosition = newUnitPosInDirection c dir
+       }
+  where dir = keyToDirection k
 moveUnitWithKey _ _ gS = gS
 
 renderFrame window glossState GameState{..} = do

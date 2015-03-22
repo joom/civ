@@ -148,6 +148,14 @@ moveUnitToDirection c dir tMap =
     to :: Maybe TileCoord
     to = neighbour board c dir
 
+newUnitPosInDirection :: TileCoord -> HexDirection -> TileCoord
+newUnitPosInDirection c dir =
+    case to of
+      Just x  -> x
+      Nothing -> c
+  where
+    to = neighbour board c dir
+
 unitExists :: TileCoord -> TileMap -> Bool
 unitExists c tMap = (isJust . tileUnit) (tMap ! c)
 
