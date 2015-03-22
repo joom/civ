@@ -9,6 +9,8 @@ import System.Exit (exitSuccess)
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import qualified Data.List as L
+import Math.Geometry.Grid.Hexagonal
+import Math.Geometry.Grid.HexagonalInternal
 
 import Board
 import Drawing
@@ -48,20 +50,38 @@ main = do
         pollEvents
         k <- keyIsPressed window Key'Escape
         pressedArrow <- pressedAmong window [Key'Left, Key'Right, Key'Up, Key'Down]
-        let newState = moveMap pressedArrow gameState 10
+        pressedUnitKeys <- pressedAmong window [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
+        let newState = moveMap pressedArrow 10
+                       $ moveUnitWithKey (0,0) pressedUnitKeys gameState
         renderFrame window glossState newState
         unless k $ loop glossState newState window
 
--- | Moves map to the opposite direction of the key.
-moveMap :: [Key] -> GameState -> Float -> GameState
-moveMap keys GameState{..} i =
-    GameState tileMapState (L.foldl' addOffset mapPosition keys)
+-- | Moves map to the opposite direction of the key, by the float number given.
+moveMap :: [Key] -> Float -> GameState -> GameState
+moveMap keys i gs@GameState{..} =
+    gs { mapPosition = L.foldl' addOffset mapPosition keys }
   where
     addOffset (x, y) Key'Left  = (x + i, y)
     addOffset (x, y) Key'Right = (x - i, y)
     addOffset (x, y) Key'Up    = (x, y - i)
     addOffset (x, y) Key'Down  = (x, y + i)
     addOffset (x, y) _         = (x, y)
+
+keyToDirection :: Key -> HexDirection
+keyToDirection k =
+    case k of
+      Key'W -> Northwest
+      Key'E -> Northeast
+      Key'D -> East
+      Key'X -> Southeast
+      Key'Z -> Southwest
+      Key'A -> West
+      _     -> error "No hexagonal direction assigned for this key."
+
+moveUnitWithKey :: TileCoord -> [Key] -> GameState -> GameState
+moveUnitWithKey c [k] gS@GameState{..} =
+    gS { tileMapState = moveUnitToDirection c (keyToDirection k) tileMapState }
+moveUnitWithKey _ _ gS = gS
 
 renderFrame window glossState GameState{..} = do
      let (x, y) = mapPosition

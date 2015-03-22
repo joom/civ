@@ -4,6 +4,7 @@ import Control.Monad
 import Control.Applicative
 import Data.Maybe
 import Math.Geometry.Grid.Hexagonal
+import Math.Geometry.Grid.HexagonalInternal
 import Math.Geometry.GridInternal
 import Math.Geometry.GridMap ((!))
 import qualified Math.Geometry.GridMap as M
@@ -134,9 +135,18 @@ replaceUnit c u tMap = M.insert c newTile tMap
 -- Always check if `unitExists` in `to`.
 moveUnit :: TileCoord -> TileCoord -> TileMap -> TileMap
 moveUnit from to tMap =
-    replaceUnit from unit $ replaceUnit to Nothing tMap
+    replaceUnit to unit $ replaceUnit from Nothing tMap
   where
     unit = tileUnit (tMap ! from)
+
+moveUnitToDirection :: TileCoord -> HexDirection -> TileMap -> TileMap
+moveUnitToDirection c dir tMap =
+    case to of
+      Just x  -> moveUnit c x tMap
+      Nothing -> tMap
+  where
+    to :: Maybe TileCoord
+    to = neighbour board c dir
 
 unitExists :: TileCoord -> TileMap -> Bool
 unitExists c tMap = (isJust . tileUnit) (tMap ! c)
