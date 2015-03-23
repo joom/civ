@@ -5,101 +5,67 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Graphics.Gloss.Rendering
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Picture
+import FRP.Elerea.Simple
+
 import System.Exit (exitSuccess)
 import Control.Concurrent (threadDelay)
 import Control.Monad
-import qualified Data.List as L
-import Math.Geometry.Grid.Hexagonal
-import Math.Geometry.Grid.HexagonalInternal
+import Control.Monad.Fix (fix)
+import Control.Applicative
 
 import Board
 import Drawing
-
-data GameState =
-    GameState { tileMapState :: TileMap
-              , mapPosition  :: (Float, Float)
-              , unitPosition :: TileCoord
-              }
-
-initGameState :: IO GameState
-initGameState = do
-    randomTMap <- randomTileMap
-    -- example units added
-    let tMap = replaceUnit (0,0) (Just Settler)
-               $ replaceImprovement (0,0) (Just City)
-               randomTMap
-    return $ GameState tMap (0,0) (0,0)
+import GameState
 
 windowWidth, windowHeight :: Int
 windowWidth  = 1000
 windowHeight = 800
 
+main :: IO ()
+main = do
+    (arrowKey, arrowKeySink)         <- external [] -- for map movement
+    (directionKey, directionKeySink) <- external [] -- for hex direction
+    glossState <- initState
+    initialGS  <- initGameState
+    withWindow windowWidth windowHeight "Civ" $ \win -> do
+        network <- start $ do
+            gsSignal <-
+                transfer2 initialGS
+                          (\arrK dirK gS@GameState{..} ->
+                              moveMap arrK 10
+                              $ moveUnitWithKey unitPosition dirK gS)
+                          arrowKey directionKey
+            return $ renderFrame win glossState <$> gsSignal
+        fix $ \loop -> do
+            readPressedInput win arrowKeys arrowKeySink
+            readPressedInput win directionKeys directionKeySink
+            join network
+            threadDelay 20000
+            esc <- keyIsPressed win Key'Escape
+            unless esc loop
+        exitSuccess
+
+renderFrame window glossState GameState{..} = do
+    let (x, y) = mapPosition
+    let views = translate x y
+                $ scale 0.4 0.4
+                $ pictures (map (tilePicture tileMapState) tiles)
+    displayPicture (windowWidth, windowHeight) seaColor glossState 1.0 views
+    swapBuffers window
+  where
+    seaColor = makeColorI 10 105 148 1
+
 pressedAmong :: Window -> [Key] -> IO [Key]
 pressedAmong w = filterM (keyIsPressed w)
 
-main :: IO ()
-main = do
-    glossState <- initState
-    gameState  <- initGameState
-    withWindow windowWidth windowHeight "Civ" $ \win -> do
-          loop glossState gameState win
-          exitSuccess
-  where
-    loop glossState gameState window = do
-        threadDelay 20000
-        pollEvents
-        k <- keyIsPressed window Key'Escape
-        pressedArrow <- pressedAmong window [Key'Left, Key'Right, Key'Up, Key'Down]
-        pressedUnitKeys <- pressedAmong window [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
-        let newState = moveMap pressedArrow 10
-                       $ moveUnitWithKey (unitPosition gameState) pressedUnitKeys
-                       gameState
-        -- debugging
-        when (unitPosition newState /= unitPosition gameState)
-             (print $ unitPosition newState)
+arrowKeys, directionKeys :: [Key]
+arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
+directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
 
-        renderFrame window glossState newState
-        unless k $ loop glossState newState window
-
--- | Moves map to the opposite direction of the key, by the float number given.
-moveMap :: [Key] -> Float -> GameState -> GameState
-moveMap keys i gs@GameState{..} =
-    gs { mapPosition = L.foldl' addOffset mapPosition keys }
-  where
-    addOffset (x, y) Key'Left  = (x + i, y)
-    addOffset (x, y) Key'Right = (x - i, y)
-    addOffset (x, y) Key'Up    = (x, y - i)
-    addOffset (x, y) Key'Down  = (x, y + i)
-    addOffset (x, y) _         = (x, y)
-
-keyToDirection :: Key -> HexDirection
-keyToDirection k =
-    case k of
-      Key'W -> Northwest
-      Key'E -> Northeast
-      Key'D -> East
-      Key'X -> Southeast
-      Key'Z -> Southwest
-      Key'A -> West
-      _     -> error "No hexagonal direction assigned for this key."
-
-moveUnitWithKey :: TileCoord -> [Key] -> GameState -> GameState
-moveUnitWithKey c [k] gS@GameState{..} =
-    gS { tileMapState = moveUnitToDirection c dir tileMapState
-       , unitPosition = newUnitPosInDirection c dir
-       }
-  where dir = keyToDirection k
-moveUnitWithKey _ _ gS = gS
-
-renderFrame window glossState GameState{..} = do
-     let (x, y) = mapPosition
-     let views = translate x y
-                 $ scale 0.4 0.4
-                 $ pictures (map (tilePicture tileMapState) tiles)
-     displayPicture (windowWidth, windowHeight) seaColor glossState 1.0 views
-     swapBuffers window
-  where
-    seaColor = makeColorI 10 105 148 1
+readPressedInput :: Window -> [Key] -> ([Key] -> IO ()) -> IO ()
+readPressedInput window keys sink = do
+    pollEvents
+    pressedAmong window keys >>= sink
 
 withWindow :: Int -> Int -> String -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do

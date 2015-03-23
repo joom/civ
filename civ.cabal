@@ -12,8 +12,9 @@ cabal-version:       >=1.10
 
 executable civ
   main-is:             Main.hs
-  other-modules:       Board, Drawing
+  other-modules:       Board, Drawing, GameState
   build-depends:       base >=4.7 && <4.8
+                     , elerea >= 2.2.0
                      , grid >=7
                      , GLFW-b == 1.4.6
                      , text == 1.2.0.4
