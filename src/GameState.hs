@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports, RecordWildCards #-}
+{-# LANGUAGE PackageImports, RecordWildCards, PatternGuards #-}
 module GameState where
 
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -17,8 +17,10 @@ import Drawing
 data GameState =
     GameState { tileMapState :: TileMap
               , mapPosition  :: (Float, Float)
+              , mapZoom      :: Float
               , unitPosition :: TileCoord
               }
+              deriving Show
 
 initGameState :: IO GameState
 initGameState = do
@@ -27,7 +29,7 @@ initGameState = do
     let tMap = replaceUnit (0,0) (Just Settler)
                $ replaceImprovement (0,0) (Just City)
                randomTMap
-    return $ GameState tMap (0,0) (0,0)
+    return $ GameState tMap (0,0) 0.2 (0,0)
 
 -- | Moves map to the opposite direction of the key, by the float number given.
 moveMap :: [Key] -> Float -> GameState -> GameState
@@ -59,3 +61,15 @@ keyToDirection k =
       Key'Z -> Southwest
       Key'A -> West
       _     -> error "No hexagonal direction assigned for this key."
+
+
+changeScale :: [Key] -> GameState -> GameState
+changeScale keys gS@GameState{..} =
+    case keys of
+        Key'Equal : ks -- `ks` can only contain left or right shift keys
+            | (not . null) ks ->
+                if mapZoom < 0.99 then gS { mapZoom = mapZoom + 0.01 } else gS
+            | otherwise       -> gS
+        [Key'Minus] ->
+            if mapZoom > 0.02 then gS { mapZoom = mapZoom - 0.01 } else gS
+        _           -> gS

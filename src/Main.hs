@@ -23,6 +23,7 @@ windowHeight = 800
 
 main :: IO ()
 main = do
+    (zoomKey, zoomKeySink)           <- external [] -- for zoom
     (arrowKey, arrowKeySink)         <- external [] -- for map movement
     (directionKey, directionKeySink) <- external [] -- for hex direction
     glossState <- initState
@@ -30,13 +31,15 @@ main = do
     withWindow windowWidth windowHeight "Civ" $ \win -> do
         network <- start $ do
             gsSignal <-
-                transfer2 initialGS
-                          (\arrK dirK gS@GameState{..} ->
-                              moveMap arrK 10
+                transfer3 initialGS
+                          (\arrK dirK zoomK gS@GameState{..} ->
+                              changeScale zoomK
+                              $ moveMap arrK 10
                               $ moveUnitWithKey unitPosition dirK gS)
-                          arrowKey directionKey
+                          arrowKey directionKey zoomKey
             return $ renderFrame win glossState <$> gsSignal
         fix $ \loop -> do
+            readPressedInput win zoomKeys zoomKeySink
             readPressedInput win arrowKeys arrowKeySink
             readPressedInput win directionKeys directionKeySink
             join network
@@ -48,7 +51,7 @@ main = do
 renderFrame window glossState GameState{..} = do
     let (x, y) = mapPosition
     let views = translate x y
-                $ scale 0.4 0.4
+                $ scale mapZoom mapZoom
                 $ pictures (map (tilePicture tileMapState) tiles)
     displayPicture (windowWidth, windowHeight) seaColor glossState 1.0 views
     swapBuffers window
@@ -58,7 +61,8 @@ renderFrame window glossState GameState{..} = do
 pressedAmong :: Window -> [Key] -> IO [Key]
 pressedAmong w = filterM (keyIsPressed w)
 
-arrowKeys, directionKeys :: [Key]
+zoomKeys, arrowKeys, directionKeys :: [Key]
+zoomKeys = [Key'Minus, Key'Equal, Key'LeftShift, Key'RightShift]
 arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
 directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
 

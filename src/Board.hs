@@ -76,7 +76,7 @@ instance Arbitrary Improvement where
     arbitrary = arbitraryBoundedEnum
 
 board :: HexHexGrid
-board = hexHexGrid 3
+board = hexHexGrid 10
 
 tiles :: [TileCoord]
 tiles = indices board
