@@ -14,25 +14,35 @@ import Math.Geometry.Grid.HexagonalInternal
 import Board
 import Drawing
 
+-- | Definition for the game state data type.
 data GameState =
-    GameState { tileMapState :: TileMap
-              , mapPosition  :: (Float, Float)
-              , mapZoom      :: Float
-              , unitPosition :: TileCoord
+    GameState { tileMapState   :: TileMap
+              , mapPosition    :: (Float, Float)
+              , mapZoom        :: Float
+              , unitPosition   :: TileCoord
+              , nextUnitInLine :: Maybe TileCoord
               }
               deriving Show
 
+-- | The main function to render the game state.
+renderView :: GameState -> Picture
+renderView = undefined
+
+-- | The default settings of a game state. It is semi-random.
 initGameState :: IO GameState
 initGameState = do
     randomTMap <- randomTileMap
     -- example units added
-    let tMap = replaceUnit (0,0) (Just Settler)
+    let tMap = replaceUnit (0,0) (Just $ Unit Settler 1 True)
                $ replaceImprovement (0,0) (Just City)
                randomTMap
-    return $ GameState tMap (0,0) 0.2 (0,0)
+    return $ GameState tMap (0,0) 0.2 (0,0) Nothing
 
 -- | Moves map to the opposite direction of the key, by the float number given.
-moveMap :: [Key] -> Float -> GameState -> GameState
+moveMap :: [Key]     -- ^ Arrow keys. Other keys are ignored.
+        -> Float     -- ^ Translation offset.
+        -> GameState -- ^ Game state to be changed.
+        -> GameState -- ^ New game state.
 moveMap keys i gs@GameState{..} =
     gs { mapPosition = L.foldl' addOffset mapPosition keys }
   where
@@ -42,7 +52,11 @@ moveMap keys i gs@GameState{..} =
     addOffset (x, y) Key'Down  = (x, y + i)
     addOffset (x, y) _         = (x, y)
 
-moveUnitWithKey :: TileCoord -> [Key] -> GameState -> GameState
+-- | Moves the unit in the given coordinate according to the key.
+moveUnitWithKey :: TileCoord -- ^ The coordinate of the unit to be moved.
+                -> [Key]     -- ^ The direction keys to determine the direction.
+                -> GameState -- ^ Game state to be changed.
+                -> GameState -- ^ New game state.
 moveUnitWithKey c [k] gS@GameState{..} =
     gS { tileMapState = moveUnitToDirection c dir tileMapState
        , unitPosition = newUnitPosInDirection c dir
@@ -51,6 +65,7 @@ moveUnitWithKey c [k] gS@GameState{..} =
 moveUnitWithKey _ _ gS = gS
 
 -- | Assigns a hexagonal direction to the keys W,E,D,X,Z,A.
+-- Note that this is a partial function and it fails on other keys.
 keyToDirection :: Key -> HexDirection
 keyToDirection k =
     case k of
@@ -62,8 +77,10 @@ keyToDirection k =
       Key'A -> West
       _     -> error "No hexagonal direction assigned for this key."
 
-
-changeScale :: [Key] -> GameState -> GameState
+-- | Changes zoom scale in the game state according to the keys.
+changeScale :: [Key] -- ^ Supposed to be a sub list of `-` `=`, and left and right shifts.
+            -> GameState -- ^ Game state to be changed.
+            -> GameState -- ^ New game state.
 changeScale keys gS@GameState{..} =
     case keys of
         Key'Equal : ks -- `ks` can only contain left or right shift keys

@@ -58,6 +58,7 @@ renderFrame window glossState GameState{..} = do
   where
     seaColor = makeColorI 10 105 148 1
 
+-- | Checks which of the given keys are pressed.
 pressedAmong :: Window -> [Key] -> IO [Key]
 pressedAmong w = filterM (keyIsPressed w)
 
@@ -66,6 +67,7 @@ zoomKeys = [Key'Minus, Key'Equal, Key'LeftShift, Key'RightShift]
 arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
 directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
 
+-- | Checks if the given keys are pressed and runs the sink.
 readPressedInput :: Window -> [Key] -> ([Key] -> IO ()) -> IO ()
 readPressedInput window keys sink = do
     pollEvents

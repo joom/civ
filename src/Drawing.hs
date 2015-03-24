@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Drawing where
 
 import Graphics.Gloss.Data.Bitmap
@@ -7,6 +8,7 @@ import Math.Geometry.GridMap ((!))
 
 import Board
 
+-- | A basic hexagon which has a radius of 100.
 hexagon :: Picture
 hexagon = polygon [(0,-100),(-87,-50),(-87,50),(0,100),(87,50),(87,-50)]
 
@@ -16,7 +18,10 @@ tileLocationCenter :: TileCoord -> (Float, Float)
 tileLocationCenter (x, y) =
     (fromIntegral $ x * 2 * 87 + y * 87, fromIntegral $ y * 150)
 
-tilePicture :: TileMap -> TileCoord -> Picture
+-- | Renders a picture for a single tile.
+tilePicture :: TileMap
+            -> TileCoord -- ^ The coordinate of the tile to be rendered.
+            -> Picture
 tilePicture tMap t =
     translate x y
     $ pictures [ tileView tile hexagon
@@ -29,6 +34,7 @@ tilePicture tMap t =
     (x, y) = tileLocationCenter t
     grey = makeColor (x/(x+y+0.2)) 1 (y/(x+y+0.2)) 1
 
+-- | Adds color to a picture according to the tile terrain.
 tileView :: Tile -> Picture -> Picture
 tileView t = color tc
   where tc = case tileTerrain t of
@@ -38,6 +44,7 @@ tileView t = color tc
                Plains    -> makeColor (215/255) (175/255) (114/255) 1  -- soil
                Tundra    -> greyN 0.8
 
+-- | Basic drawing of a resource.
 resourceView :: Maybe Resource -> Picture
 resourceView Nothing = Blank
 resourceView (Just r) =
@@ -51,15 +58,17 @@ resourceView (Just r) =
       _        -> Blank
   where s = 12
 
+-- | Basic drawing of a unit.
 unitView :: Maybe Unit -> Picture
 unitView Nothing = Blank
-unitView (Just u) =
-    case u of
+unitView (Just Unit{..}) =
+    case unitKind of
       Settler -> color blue $ thickCircle s s
       Worker  -> color red  $ thickCircle s s
       _       -> Blank
   where s = 50
 
+-- | Basic drawing of an improvement.
 improvementView :: Maybe Improvement -> Picture
 improvementView Nothing = Blank
 improvementView (Just i) =
@@ -70,10 +79,3 @@ improvementView (Just i) =
       Mine    -> color yellow $ thickCircle s s
       Well    -> color yellow $ thickCircle s s
   where s = 20
-
-bitmaps :: IO [Picture]
-bitmaps = sequence [
-      loadBMP "assets/iron.bmp"
-    , loadBMP "assets/coal.bmp"
-    , loadBMP "assets/uranium.bmp"
-    ]
