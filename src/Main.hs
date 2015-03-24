@@ -23,6 +23,7 @@ windowHeight = 800
 
 main :: IO ()
 main = do
+    (turnKey, turnKeySink)           <- external [] -- to move to the next unit
     (zoomKey, zoomKeySink)           <- external [] -- for zoom
     (arrowKey, arrowKeySink)         <- external [] -- for map movement
     (directionKey, directionKeySink) <- external [] -- for hex direction
@@ -31,15 +32,17 @@ main = do
     withWindow windowWidth windowHeight "Civ" $ \win -> do
         network <- start $ do
             gsSignal <-
-                transfer3 initialGS
-                          (\arrK dirK zoomK gS@GameState{..} ->
+                transfer4 initialGS
+                          (\arrK dirK zoomK turnK gS@GameState{..} ->
                               blink
                               $ changeScale zoomK
                               $ moveMap arrK 10
+                              $ turnAction turnK
                               $ moveUnitWithKey unitPosition dirK gS)
-                          arrowKey directionKey zoomKey
+                          arrowKey directionKey zoomKey turnKey
             return $ renderFrame win glossState <$> gsSignal
         fix $ \loop -> do
+            readPressedInput win turnKeys turnKeySink
             readPressedInput win zoomKeys zoomKeySink
             readPressedInput win arrowKeys arrowKeySink
             readPressedInput win directionKeys directionKeySink
@@ -60,7 +63,8 @@ renderFrame window glossState gameState = do
 pressedAmong :: Window -> [Key] -> IO [Key]
 pressedAmong w = filterM (keyIsPressed w)
 
-zoomKeys, arrowKeys, directionKeys :: [Key]
+turnKeys, zoomKeys, arrowKeys, directionKeys :: [Key]
+turnKeys = [Key'Space]
 zoomKeys = [Key'Minus, Key'Equal, Key'LeftShift, Key'RightShift]
 arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
 directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]

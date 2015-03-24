@@ -239,5 +239,13 @@ findNextUnitInLine tMap =
   where
     units = allUnits tMap
     u'    = filter (unitInLine . snd) units
-    u''   = filter ((/= 0) . unitMovementLeft . snd) units -- checking again
+    u''   = filter ((/= 0) . unitMovementLeft . snd) u' -- checking again
 
+-- | Change the current `nextUnitInLine`'s `unitInLine` to False
+deactivateNextUnitInLine :: TileCoord -> TileMap -> TileMap
+deactivateNextUnitInLine c tMap = M.insert c newTile tMap
+  where
+    tile = tMap ! c
+    unitish = tileUnit tile :: Maybe Unit
+    newTile = maybe tile
+              (\u -> tile {tileUnit = Just $ u {unitInLine = False}}) unitish
