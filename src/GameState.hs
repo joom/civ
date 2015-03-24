@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports, RecordWildCards, PatternGuards #-}
+{-# LANGUAGE PackageImports, RecordWildCards #-}
 module GameState where
 
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -10,6 +10,7 @@ import Control.Applicative
 import qualified Data.List as L
 import Math.Geometry.Grid.Hexagonal
 import Math.Geometry.Grid.HexagonalInternal
+import Math.Geometry.GridMap ((!))
 
 import Board
 import Drawing
@@ -21,12 +22,48 @@ data GameState =
               , mapZoom        :: Float
               , unitPosition   :: TileCoord
               , nextUnitInLine :: Maybe TileCoord
+              , blinkAnimation :: (Float, Bool)
               }
               deriving Show
 
 -- | The main function to render the game state.
 renderView :: GameState -> Picture
-renderView = undefined
+renderView gS@GameState{..} = views
+  where
+    (x, y) = mapPosition
+    views  = translate x y
+             $ scale mapZoom mapZoom
+             $ pictures (map (tilePicture gS) tiles)
+
+-- | Renders a picture for a single tile.
+tilePicture :: GameState
+            -> TileCoord -- ^ The coordinate of the tile to be rendered.
+            -> Picture
+tilePicture gS@GameState{..} t =
+    translate x y
+    $ pictures [ tileView tile hexagon
+               , (resourceView . tileResource) tile
+               , (unitView gS . tileUnit) tile
+               , (improvementView . tileImprovement) tile
+               ]
+  where
+    tile = tileMapState ! t
+    (x, y) = tileLocationCenter t
+    grey = makeColor (x/(x+y+0.2)) 1 (y/(x+y+0.2)) 1
+
+-- | Basic drawing of a unit.
+unitView :: GameState -> Maybe Unit -> Picture
+unitView _ Nothing = Blank
+unitView GameState{..} (Just Unit{..}) =
+    case unitKind of
+      Settler -> color (setAlpha blue (fst blinkAnimation)) $ thickCircle s s
+      Worker  -> color red  $ thickCircle s s
+      _       -> Blank
+  where s = 50
+
+------------------------------
+-- Game state change functions
+------------------------------
 
 -- | The default settings of a game state. It is semi-random.
 initGameState :: IO GameState
@@ -36,7 +73,7 @@ initGameState = do
     let tMap = replaceUnit (0,0) (Just $ Unit Settler 1 True)
                $ replaceImprovement (0,0) (Just City)
                randomTMap
-    return $ GameState tMap (0,0) 0.2 (0,0) Nothing
+    return $ GameState tMap (0,0) 0.2 (0,0) Nothing (1.0, False)
 
 -- | Moves map to the opposite direction of the key, by the float number given.
 moveMap :: [Key]     -- ^ Arrow keys. Other keys are ignored.
@@ -90,3 +127,16 @@ changeScale keys gS@GameState{..} =
         [Key'Minus] ->
             if mapZoom > 0.02 then gS { mapZoom = mapZoom - 0.01 } else gS
         _           -> gS
+
+-- | Set state for blink animation.
+blink :: GameState -> GameState
+blink gS@GameState{..} =
+    gS { blinkAnimation = y  }
+  where
+    (x, inc) = blinkAnimation
+    op = if inc then (+) else (-)
+    i = 0.07 -- offset
+    y = case () of
+        _ | x < 0.3 && not inc -> (x + i, True)
+          | x > 0.9 && inc     -> (x - i, False)
+          | otherwise          -> (x `op` i, inc)

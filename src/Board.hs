@@ -155,7 +155,9 @@ randomTileMap = do
   init <- M.lazyGridMap board `liftM` (generate . infiniteListOf) randomTile
   (generate . sequenceMap . educatedTileMap) init
 
+--------------------------------
 -- Tile content change functions
+--------------------------------
 
 -- | Changes the improvement on a tile coordinate.
 replaceImprovement :: TileCoord         -- ^ Tile coordinate to be changed.

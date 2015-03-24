@@ -33,7 +33,8 @@ main = do
             gsSignal <-
                 transfer3 initialGS
                           (\arrK dirK zoomK gS@GameState{..} ->
-                              changeScale zoomK
+                              blink
+                              $ changeScale zoomK
                               $ moveMap arrK 10
                               $ moveUnitWithKey unitPosition dirK gS)
                           arrowKey directionKey zoomKey
@@ -48,12 +49,9 @@ main = do
             unless esc loop
         exitSuccess
 
-renderFrame window glossState GameState{..} = do
-    let (x, y) = mapPosition
-    let views = translate x y
-                $ scale mapZoom mapZoom
-                $ pictures (map (tilePicture tileMapState) tiles)
-    displayPicture (windowWidth, windowHeight) seaColor glossState 1.0 views
+renderFrame window glossState gameState = do
+    displayPicture (windowWidth, windowHeight)
+                   seaColor glossState 1.0 (renderView gameState)
     swapBuffers window
   where
     seaColor = makeColorI 10 105 148 1

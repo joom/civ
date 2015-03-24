@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Drawing where
 
 import Graphics.Gloss.Data.Bitmap
@@ -17,22 +16,6 @@ hexagon = polygon [(0,-100),(-87,-50),(-87,50),(0,100),(87,50),(87,-50)]
 tileLocationCenter :: TileCoord -> (Float, Float)
 tileLocationCenter (x, y) =
     (fromIntegral $ x * 2 * 87 + y * 87, fromIntegral $ y * 150)
-
--- | Renders a picture for a single tile.
-tilePicture :: TileMap
-            -> TileCoord -- ^ The coordinate of the tile to be rendered.
-            -> Picture
-tilePicture tMap t =
-    translate x y
-    $ pictures [ tileView tile hexagon
-               , (resourceView . tileResource) tile
-               , (unitView . tileUnit) tile
-               , (improvementView . tileImprovement) tile
-               ]
-  where
-    tile = tMap ! t
-    (x, y) = tileLocationCenter t
-    grey = makeColor (x/(x+y+0.2)) 1 (y/(x+y+0.2)) 1
 
 -- | Adds color to a picture according to the tile terrain.
 tileView :: Tile -> Picture -> Picture
@@ -58,16 +41,6 @@ resourceView (Just r) =
       _        -> Blank
   where s = 12
 
--- | Basic drawing of a unit.
-unitView :: Maybe Unit -> Picture
-unitView Nothing = Blank
-unitView (Just Unit{..}) =
-    case unitKind of
-      Settler -> color blue $ thickCircle s s
-      Worker  -> color red  $ thickCircle s s
-      _       -> Blank
-  where s = 50
-
 -- | Basic drawing of an improvement.
 improvementView :: Maybe Improvement -> Picture
 improvementView Nothing = Blank
@@ -79,3 +52,8 @@ improvementView (Just i) =
       Mine    -> color yellow $ thickCircle s s
       Well    -> color yellow $ thickCircle s s
   where s = 20
+
+-- | Changes the alpha value of a color to get a new color.
+setAlpha :: Color -> Float -> Color
+setAlpha color = makeColor r g b
+  where (r, g, b, _) = rgbaOfColor color
