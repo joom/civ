@@ -109,34 +109,6 @@ main = do
 
         runGame glossState env state
 
-    -- (turnKey, turnKeySink)           <- external [] -- to move to the next unit
-    -- (zoomKey, zoomKeySink)           <- external [] -- for zoom
-    -- (arrowKey, arrowKeySink)         <- external [] -- for map movement
-    -- (directionKey, directionKeySink) <- external [] -- for hex direction
-    -- glossState <- initState
-    -- initialGS  <- initGameState
-    -- withWindow windowWidth windowHeight "Civ" $ \win -> do
-    --     network <- start $ do
-    --         gsSignal <-
-    --             transfer4 initialGS
-    --                       (\arrK dirK zoomK turnK gS@GameState{..} ->
-    --                           blink
-    --                           $ changeScale zoomK
-    --                           $ moveMap arrK 10
-    --                           $ turnAction turnK
-    --                           $ moveUnitWithKey unitPosition dirK gS)
-    --                       arrowKey directionKey zoomKey turnKey
-    --         return $ renderFrame win glossState <$> gsSignal
-    --     fix $ \loop -> do
-    --         readPressedInput win turnKeys turnKeySink
-    --         readPressedInput win zoomKeys zoomKeySink
-    --         readPressedInput win arrowKeys arrowKeySink
-    --         readPressedInput win directionKeys directionKeySink
-    --         join network
-    --         threadDelay 20000
-    --         esc <- keyIsPressed win Key'Escape
-    --         unless esc loop
-    --     exitSuccess
 
 -- | Checks which of the given keys are pressed.
 pressedAmong :: Window -> [Key] -> IO [Key]
@@ -343,13 +315,17 @@ processEvent ev =
                 liftIO $ GLFW.setWindowShouldClose win True
               -- TODO
 
-              -- -- ?: print instructions
-              -- when (k == GLFW.Key'Slash && GLFW.modifierKeysShift mk) $
-              --   liftIO printInstructions
-              -- -- i: print GLFW information
-              -- when (k == GLFW.Key'I) $
-              --   liftIO $ printInformation win
-
+              when (k == GLFW.Key'Space) $
+                  modify $ \s -> s { stateGameState = turnAction [k] $ stateGameState s  } --TODO simplify
+              when (k `elem` directionKeys) $
+                  modify $ \s -> let gS@GameState{..} = stateGameState s in
+                      s { stateGameState = moveUnitWithKey unitPosition [k] gS  } --TODO simplify
+              when (k `elem` zoomKeys) $
+                  modify $ \s -> let gS@GameState{..} = stateGameState s in
+                      s { stateGameState = changeScale [k] gS  } --TODO simplify/handle modifier
+              when (k `elem` arrowKeys) $
+                  modify $ \s -> let gS@GameState{..} = stateGameState s in
+                      s { stateGameState = moveMap [k] 10 gS  } --TODO simplify
       (EventChar _ c) ->
           printEvent "char" [show c]
 
