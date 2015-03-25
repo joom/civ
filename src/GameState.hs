@@ -141,9 +141,9 @@ changeScale :: [Key] -- ^ Supposed to be a sub list of `-` `=`, and left and rig
 changeScale keys gS@GameState{..} =
     case keys of
         Key'Equal : ks -- `ks` can only contain left or right shift keys
-            | (not . null) ks ->
-                if mapZoom < 0.99 then gS { mapZoom = mapZoom + 0.01 } else gS
-            | otherwise       -> gS
+            | (not . null) ks && mapZoom < 0.99 ->
+                  gS { mapZoom = mapZoom + 0.01 }
+            | otherwise -> gS
         [Key'Minus] ->
             if mapZoom > 0.02 then gS { mapZoom = mapZoom - 0.01 } else gS
         _           -> gS
