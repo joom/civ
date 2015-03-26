@@ -134,19 +134,17 @@ turnAction [Key'Space] gS@GameState{..} =
         _      -> gS  -- end turn or activate all units again
 turnAction _ gS = gS
 
--- | Changes zoom scale in the game state according to the keys.
-changeScale :: [Key] -- ^ Supposed to be a sub list of `-` `=`, and left and right shifts.
+-- | Changes zoom scale in the game state with respect to a coefficient.
+changeScale :: Float     -- ^ The coefficient to respond to.
             -> GameState -- ^ Game state to be changed.
             -> GameState -- ^ New game state.
-changeScale keys gS@GameState{..} =
-    case keys of
-        Key'Equal : ks -- `ks` can only contain left or right shift keys
-            | (not . null) ks && mapZoom < 0.99 ->
-                  gS { mapZoom = mapZoom + 0.01 }
-            | otherwise -> gS
-        [Key'Minus] ->
-            if mapZoom > 0.02 then gS { mapZoom = mapZoom - 0.01 } else gS
-        _           -> gS
+changeScale coeff gS@GameState{..} =
+    gS { mapZoom = limited }
+  where
+    newZoom = mapZoom * ((coeff + 100.0) / 100)
+    limited | newZoom < 0.2 = 0.2
+            | newZoom > 0.9 = 0.9
+            | otherwise     = newZoom
 
 -- | Set state for blink animation.
 blink :: GameState -> GameState

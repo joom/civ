@@ -10,12 +10,13 @@ import Graphics.Gloss.Data.Picture
 import System.Exit (exitSuccess)
 import Control.Concurrent (threadDelay)
 import Control.Applicative
-import Control.Concurrent.STM    (TQueue, atomically, newTQueueIO, tryReadTQueue, writeTQueue)
+import Control.Concurrent.STM (TQueue, atomically, newTQueueIO, tryReadTQueue, writeTQueue)
 import Control.Monad
 import Control.Monad.Fix (fix)
-import Control.Monad.RWS.Strict  (RWST, ask, asks, evalRWST, get, liftIO, modify, put)
+import Control.Monad.RWS.Strict (RWST, ask, asks, evalRWST, get, liftIO, modify, put)
 import Control.Monad.Trans.Maybe (MaybeT(..), runMaybeT)
 import Data.Maybe
+import GHC.Float (double2Float)
 
 import Board
 import Drawing
@@ -37,6 +38,9 @@ data State = State
     , stateDragStartYAngle :: !Double
     , stateGameState       :: GameState
     }
+
+updateGameState :: GameState -> State -> State
+updateGameState gS s = s { stateGameState = gS  }
 
 type Game = RWST Env () State IO
 
@@ -69,7 +73,7 @@ main :: IO ()
 main = do
     eventsChan <- newTQueueIO :: IO (TQueue Event)
 
-    withWindow windowWidth windowHeight "GLFW-b-demo" $ \win -> do
+    withWindow windowWidth windowHeight "Civ" $ \win -> do
         GLFW.setErrorCallback               $ Just $ errorCallback           eventsChan
         GLFW.setWindowPosCallback       win $ Just $ windowPosCallback       eventsChan
         GLFW.setWindowSizeCallback      win $ Just $ windowSizeCallback      eventsChan
@@ -300,11 +304,8 @@ processEvent ev =
           printEvent "cursor enter" [show cs]
 
       (EventScroll _ x y) -> do
-          let x' = round x :: Int
-              y' = round y :: Int
-          printEvent "scroll" [show x', show y']
-          env <- ask
-          modify $ \s -> s -- TODO
+          let y' = double2Float y
+          modify $ \s -> updateGameState (changeScale y' (stateGameState s)) s
           adjustWindow
 
       (EventKey win k scancode ks mk) -> do
@@ -316,13 +317,10 @@ processEvent ev =
               -- TODO
 
               when (k == GLFW.Key'Space) $
-                  modify $ \s -> s { stateGameState = turnAction [k] $ stateGameState s  } --TODO simplify
+                  modify $ \s -> updateGameState (turnAction [k] $ stateGameState s) s
               when (k `elem` directionKeys) $
                   modify $ \s -> let gS@GameState{..} = stateGameState s in
                       s { stateGameState = moveUnitWithKey unitPosition [k] gS  } --TODO simplify
-              when (k `elem` zoomKeys) $
-                  modify $ \s -> let gS@GameState{..} = stateGameState s in
-                      s { stateGameState = changeScale [k] gS  } --TODO simplify/handle modifier
               when (k `elem` arrowKeys) $
                   modify $ \s -> let gS@GameState{..} = stateGameState s in
                       s { stateGameState = moveMap [k] 10 gS  } --TODO simplify
