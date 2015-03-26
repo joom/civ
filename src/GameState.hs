@@ -83,18 +83,13 @@ initGameState = do
     return $ GameState tMap (0,0) 0.2 (0,0) (Just (0,0)) (1.0, False)
 
 -- | Moves map to the opposite direction of the key, by the float number given.
-moveMap :: [Key]     -- ^ Arrow keys. Other keys are ignored.
+moveMap :: (Float, Float) -- ^ Indicates directions coming from getCursorKeyDirections.
         -> Float     -- ^ Translation offset.
         -> GameState -- ^ Game state to be changed.
         -> GameState -- ^ New game state.
-moveMap keys i gs@GameState{..} =
-    gs { mapPosition = L.foldl' addOffset mapPosition keys }
-  where
-    addOffset (x, y) Key'Left  = (x + i, y)
-    addOffset (x, y) Key'Right = (x - i, y)
-    addOffset (x, y) Key'Up    = (x, y - i)
-    addOffset (x, y) Key'Down  = (x, y + i)
-    addOffset (x, y) _         = (x, y)
+moveMap (x,y) i gs@GameState{..} =
+    gs { mapPosition = (x' + x * i, y' + y * i) }
+  where (x', y') = mapPosition
 
 -- | Moves the unit in the given coordinate according to the key.
 moveUnitWithKey :: TileCoord -- ^ The coordinate of the unit to be moved.

@@ -41,6 +41,8 @@ data State = State
 
 updateGameState :: GameState -> State -> State
 updateGameState gS s = s { stateGameState = gS  }
+modifyGameState :: (GameState -> GameState) -> State -> State
+modifyGameState f s = s { stateGameState = f (stateGameState s)  }
 
 type Game = RWST Env () State IO
 
@@ -113,23 +115,6 @@ main = do
 
         runGame glossState env state
 
-
--- | Checks which of the given keys are pressed.
-pressedAmong :: Window -> [Key] -> IO [Key]
-pressedAmong w = filterM (keyIsPressed w)
-
-turnKeys, zoomKeys, arrowKeys, directionKeys :: [Key]
-turnKeys = [Key'Space]
-zoomKeys = [Key'Minus, Key'Equal, Key'LeftShift, Key'RightShift]
-arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
-directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
-
--- | Checks if the given keys are pressed and runs the sink.
-readPressedInput :: Window -> [Key] -> ([Key] -> IO ()) -> IO ()
-readPressedInput window keys sink = do
-    pollEvents
-    pressedAmong window keys >>= sink
-
 withWindow :: Int -> Int -> String -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do
     GLFW.setErrorCallback $ Just simpleErrorCallback
@@ -183,14 +168,16 @@ scrollCallback          tc win x y        = atomically $ writeTQueue tc $ EventS
 keyCallback             tc win k sc ka mk = atomically $ writeTQueue tc $ EventKey             win k sc ka mk
 charCallback            tc win c          = atomically $ writeTQueue tc $ EventChar            win c
 
+directionKeys :: [Key]
+directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
+
 --------------------------------------------------------------------------------
 
--- runGame :: _ -> Env -> State -> IO ()
-runGame glossState env state = do
-    -- printInstructions
+-- | runGame :: _ -> Env -> State -> IO ()
+runGame glossState env state =
     void $ evalRWST (adjustWindow >> run glossState) env state
 
--- run :: _ -> Game ()
+-- | run :: _ -> Game ()
 run glossState = do
     win <- asks envWindow
 
@@ -216,11 +203,7 @@ run glossState = do
             -- }
       else do
           (kxrot, kyrot) <- liftIO $ getCursorKeyDirections win
-          (jxrot, jyrot) <- liftIO $ getJoystickDirections GLFW.Joystick'1
-          put $ state
-            -- { stateXAngle = stateXAngle state + (2 * kxrot) + (2 * jxrot)
-            -- , stateYAngle = stateYAngle state + (2 * kyrot) + (2 * jyrot)
-            -- }
+          modify $ modifyGameState (moveMap (kxrot, kyrot) 10)
 
     mt <- liftIO GLFW.getTime
     modify $ \s -> s
@@ -304,26 +287,19 @@ processEvent ev =
           printEvent "cursor enter" [show cs]
 
       (EventScroll _ x y) -> do
-          let y' = double2Float y
-          modify $ \s -> updateGameState (changeScale y' (stateGameState s)) s
+          (modify . modifyGameState . changeScale . double2Float) y
           adjustWindow
 
       (EventKey win k scancode ks mk) -> do
           printEvent "key" [show k, show scancode, show ks, showModifierKeys mk]
           when (ks == GLFW.KeyState'Pressed) $ do
-              -- Q, Esc: exit
-              when (k == GLFW.Key'Q || k == GLFW.Key'Escape) $
-                liftIO $ GLFW.setWindowShouldClose win True
-              -- TODO
-
+              when (k == GLFW.Key'Q || k == GLFW.Key'Escape) $ -- Q, Esc: exit
+                  liftIO $ GLFW.setWindowShouldClose win True
               when (k == GLFW.Key'Space) $
-                  modify $ \s -> updateGameState (turnAction [k] $ stateGameState s) s
+                  modify $ modifyGameState (turnAction [k])
               when (k `elem` directionKeys) $
-                  modify $ \s -> let gS@GameState{..} = stateGameState s in
-                      s { stateGameState = moveUnitWithKey unitPosition [k] gS  } --TODO simplify
-              when (k `elem` arrowKeys) $
-                  modify $ \s -> let gS@GameState{..} = stateGameState s in
-                      s { stateGameState = moveMap [k] 10 gS  } --TODO simplify
+                  modify $ modifyGameState $ \gS@GameState{..} ->
+                      moveUnitWithKey unitPosition [k] gS
       (EventChar _ c) ->
           printEvent "char" [show c]
 
@@ -348,25 +324,15 @@ draw glossState = do
 
 --------------------------------------------------------------------------------
 
-getCursorKeyDirections :: GLFW.Window -> IO (Double, Double)
+getCursorKeyDirections :: GLFW.Window -> IO (Float, Float)
 getCursorKeyDirections win = do
-    x0 <- keyIsPressed win GLFW.Key'Up
-    x1 <- keyIsPressed win GLFW.Key'Down
-    y0 <- keyIsPressed win GLFW.Key'Left
-    y1 <- keyIsPressed win GLFW.Key'Right
-    let x0n = if x0 then (-1) else 0
-        x1n = if x1 then   1  else 0
+    let arrowKeys = [Key'Left, Key'Right, Key'Up, Key'Down]
+    [x0, x1, y0, y1] <- mapM (keyIsPressed win) arrowKeys
+    let x0n = if x0 then   1  else 0
+        x1n = if x1 then (-1) else 0
         y0n = if y0 then (-1) else 0
         y1n = if y1 then   1  else 0
     return (x0n + x1n, y0n + y1n)
-
-getJoystickDirections :: GLFW.Joystick -> IO (Double, Double)
-getJoystickDirections js = do
-    maxes <- GLFW.getJoystickAxes js
-    return $ case maxes of
-      (Just (x:y:_)) -> (-y, x)
-      _              -> ( 0, 0)
-
 
 keyIsPressed :: Window -> Key -> IO Bool
 keyIsPressed win key = isPress `fmap` GLFW.getKey win key
