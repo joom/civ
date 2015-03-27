@@ -43,9 +43,9 @@ tilePicture :: TextureMap
             -> Picture
 tilePicture txMap gS@GameState{..} t =
     translate x y
-    $ pictures [ tileView tile hexagon -- or you can say ("poly" `from` txMap)
-               , (resourceView . tileResource) tile
-               , (unitView gS t . tileUnit) tile
+    $ pictures [ tileView txMap tile
+               , (resourceView txMap . tileResource) tile
+               , (unitView txMap gS t . tileUnit) tile
                , (improvementView . tileImprovement) tile
                ]
   where
@@ -54,12 +54,13 @@ tilePicture txMap gS@GameState{..} t =
     grey = makeColor (x/(x+y+0.2)) 1 (y/(x+y+0.2)) 1
 
 -- | Basic drawing of a unit.
-unitView :: GameState -> TileCoord -> Maybe Unit -> Picture
-unitView _ _ Nothing = Blank
-unitView GameState{..} coord (Just Unit{..}) =
+unitView :: TextureMap -> GameState -> TileCoord -> Maybe Unit -> Picture
+unitView _ _ _ Nothing = Blank
+unitView txMap GameState{..} coord (Just Unit{..}) =
     case unitKind of
-      Settler -> color (blinky blue) $ thickCircle s s
-      Worker  -> color (blinky red)  $ thickCircle s s
+      Settler -> "settler" `from` txMap
+      Worker  -> "worker" `from` txMap
+      -- Worker  -> color (blinky red)  $ "worker" `from` txMap
       _       -> Blank
   where
     s = 50

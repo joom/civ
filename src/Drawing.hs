@@ -6,6 +6,7 @@ import Graphics.Gloss.Data.Picture
 import Math.Geometry.GridMap ((!))
 
 import Board
+import Textures
 
 -- | A basic hexagon which has a radius of 100.
 hexagon :: Picture
@@ -18,19 +19,19 @@ tileLocationCenter (x, y) =
     (fromIntegral $ x * 2 * 87 + y * 87, fromIntegral $ y * 150)
 
 -- | Adds color to a picture according to the tile terrain.
-tileView :: Tile -> Picture -> Picture
-tileView t = color tc
+tileView :: TextureMap -> Tile -> Picture
+tileView txMap t = tc
   where tc = case tileTerrain t of
-               Desert    -> makeColor (206/255) (172/255) (65/255)  1  -- desert
-               Grassland -> makeColor (1/255)   (166/255) (17/255)  1  -- grass
-               Hill      -> makeColor (102/255) (51/255)  (0/255)   1  -- brown
-               Plains    -> makeColor (215/255) (175/255) (114/255) 1  -- soil
-               Tundra    -> greyN 0.8
+               Desert    -> "desert" `from` txMap
+               Grassland -> "grass" `from` txMap
+               Hill      -> "hill" `from` txMap
+               Plains    -> "plains" `from` txMap
+               Tundra    -> "tundra" `from` txMap
 
 -- | Basic drawing of a resource.
-resourceView :: Maybe Resource -> Picture
-resourceView Nothing = Blank
-resourceView (Just r) =
+resourceView :: TextureMap -> Maybe Resource -> Picture
+resourceView _ Nothing = Blank
+resourceView txMap (Just r) =
     case r of
       Horses   -> color (light $ makeColor (102/255) (51/255) (0/255) 1) $ thickCircle s s
       Iron     -> color (greyN 0.5) $ thickCircle s s

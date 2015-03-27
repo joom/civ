@@ -15,7 +15,13 @@ type TextureMap = M.Map String Texture
 
 textureMap :: IO TextureMap
 textureMap = createTextureMap
-    [ ("poly", "assets/poly.png")
+    [ ("desert", "assets/desert.png")
+    , ("grass",  "assets/grass.png")
+    , ("hill",   "assets/hill.png")
+    , ("plains", "assets/plains.png")
+    , ("tundra", "assets/tundra.png")
+    , ("settler", "assets/settler.png")
+    , ("worker", "assets/worker.png")
     ]
 
 -- | Create texture map from texture names and PNG file paths.

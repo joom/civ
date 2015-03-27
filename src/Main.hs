@@ -21,7 +21,7 @@ import GHC.Float (double2Float)
 import Board
 import Drawing
 import GameState
-import qualified Textures
+import qualified Textures as Tx
 
 data Env = Env
     { envEventsChan    :: TQueue Event
@@ -97,6 +97,7 @@ main = do
         (fbWidth, fbHeight) <- GLFW.getFramebufferSize win
         glossState <- initState     -- we don't have access to its type
         gameState  <- initGameState
+        txMap <- liftIO Tx.textureMap
 
         let env = Env
               { envEventsChan    = eventsChan
@@ -114,7 +115,7 @@ main = do
               , stateGameState       = gameState
               }
 
-        runGame glossState env state
+        runGame glossState txMap env state
 
 withWindow :: Int -> Int -> String -> (GLFW.Window -> IO ()) -> IO ()
 withWindow width height title f = do
@@ -175,14 +176,14 @@ directionKeys = [Key'W, Key'E, Key'D, Key'X, Key'Z, Key'A]
 --------------------------------------------------------------------------------
 
 -- | runGame :: _ -> Env -> State -> IO ()
-runGame glossState env state =
-    void $ evalRWST (adjustWindow >> run glossState) env state
+runGame glossState txMap env state =
+    void $ evalRWST (adjustWindow >> run glossState txMap) env state
 
 -- | run :: _ -> Game ()
-run glossState = do
+run glossState txMap = do
     win <- asks envWindow
 
-    draw glossState
+    draw glossState txMap
     liftIO $ do
         GLFW.swapBuffers win
         GLFW.pollEvents
@@ -213,7 +214,7 @@ run glossState = do
 
     q <- liftIO $ GLFW.windowShouldClose win
     modify $ modifyGameState blink
-    unless q (run glossState)
+    unless q (run glossState txMap)
 
 processEvents :: Game ()
 processEvents = do
@@ -314,13 +315,12 @@ adjustWindow = do
     return () -- TODO
 
 -- draw :: _ -> Game ()
-draw glossState = do
+draw glossState txMap = do
     env   <- ask
     state <- get
-    textureMap <- liftIO Textures.textureMap
     liftIO $ displayPicture
                  (windowWidth, windowHeight)
-                  seaColor glossState 1.0 (renderView textureMap (stateGameState state))
+                  seaColor glossState 1.0 (renderView txMap (stateGameState state))
     liftIO $ return ()
   where
     seaColor = makeColorI 10 105 148 1
