@@ -211,6 +211,7 @@ run glossState = do
       -- }
 
     q <- liftIO $ GLFW.windowShouldClose win
+    modify $ modifyGameState blink
     unless q (run glossState)
 
 processEvents :: Game ()
@@ -293,13 +294,13 @@ processEvent ev =
       (EventKey win k scancode ks mk) -> do
           printEvent "key" [show k, show scancode, show ks, showModifierKeys mk]
           when (ks == GLFW.KeyState'Pressed) $ do
-              when (k == GLFW.Key'Q || k == GLFW.Key'Escape) $ -- Q, Esc: exit
+              when (k == GLFW.Key'Escape) $
                   liftIO $ GLFW.setWindowShouldClose win True
               when (k == GLFW.Key'Space) $
                   modify $ modifyGameState (turnAction [k])
               when (k `elem` directionKeys) $
                   modify $ modifyGameState $ \gS@GameState{..} ->
-                      moveUnitWithKey unitPosition [k] gS
+                      moveUnitWithKey nextUnitInLine [k] gS
       (EventChar _ c) ->
           printEvent "char" [show c]
 

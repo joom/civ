@@ -80,7 +80,7 @@ initGameState = do
                $ replaceUnit (2,3) (Just $ Unit Worker 1 True)
                $ replaceImprovement (0,0) (Just City)
                randomTMap
-    return $ GameState tMap (0,0) 0.2 (0,0) (Just (0,0)) (1.0, False)
+    return $ GameState tMap (0,0) 0.6 (0,0) (Just (0,0)) (1.0, False)
 
 -- | Moves map to the opposite direction of the key, by the float number given.
 moveMap :: (Float, Float) -- ^ Indicates directions coming from getCursorKeyDirections.
@@ -92,14 +92,18 @@ moveMap (x,y) i gs@GameState{..} =
   where (x', y') = mapPosition
 
 -- | Moves the unit in the given coordinate according to the key.
-moveUnitWithKey :: TileCoord -- ^ The coordinate of the unit to be moved.
-                -> [Key]     -- ^ The direction keys to determine the direction.
-                -> GameState -- ^ Game state to be changed.
-                -> GameState -- ^ New game state.
-moveUnitWithKey c [k] gS@GameState{..} =
-    gS { tileMapState = moveUnitToDirection c dir tileMapState
-       , unitPosition = newUnitPosInDirection c dir
-       }
+moveUnitWithKey :: Maybe TileCoord -- ^ The coordinate of the unit to be moved.
+                -> [Key]           -- ^ The direction keys to determine the direction.
+                -> GameState       -- ^ Game state to be changed.
+                -> GameState       -- ^ New game state.
+moveUnitWithKey mCoord [k] gS@GameState{..} =
+    case mCoord of
+      Nothing -> gS
+      Just c ->
+          gS { tileMapState = moveUnitToDirection c dir tileMapState
+             , nextUnitInLine = findNextUnitInLine
+                                $ deactivateNextUnitInLine c tileMapState
+             }
   where dir = keyToDirection k
 moveUnitWithKey _ _ gS = gS
 
