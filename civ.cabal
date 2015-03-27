@@ -12,8 +12,9 @@ cabal-version:       >=1.10
 
 executable civ
   main-is:             Main.hs
-  other-modules:       Board, Drawing, GameState
+  other-modules:       Board, Drawing, GameState, Textures
   build-depends:       base >=4.7 && <4.8
+                     , containers >= 0.5
                      , grid >=7
                      , GLFW-b == 1.4.6
                      , text == 1.2.0.4
@@ -24,6 +25,8 @@ executable civ
                      , mtl >= 2.1
                      , stm >= 2.4
                      , transformers >= 0.3
+                     , gloss-juicy >= 0.2
+                     , JuicyPixels
   hs-source-dirs:      src
   default-language:    Haskell2010
 

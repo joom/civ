@@ -14,6 +14,7 @@ import Math.Geometry.GridMap ((!))
 
 import Board
 import Drawing
+import Textures
 
 -- | Definition for the game state data type.
 data GameState =
@@ -27,21 +28,22 @@ data GameState =
               deriving Show
 
 -- | The main function to render the game state.
-renderView :: GameState -> Picture
-renderView gS@GameState{..} = views
+renderView :: TextureMap -> GameState -> Picture
+renderView txMap gS@GameState{..} = views
   where
     (x, y) = mapPosition
     views  = translate x y
              $ scale mapZoom mapZoom
-             $ pictures (map (tilePicture gS) tiles)
+             $ pictures (map (tilePicture txMap gS) tiles)
 
 -- | Renders a picture for a single tile.
-tilePicture :: GameState
+tilePicture :: TextureMap
+            -> GameState
             -> TileCoord -- ^ The coordinate of the tile to be rendered.
             -> Picture
-tilePicture gS@GameState{..} t =
+tilePicture txMap gS@GameState{..} t =
     translate x y
-    $ pictures [ tileView tile hexagon
+    $ pictures [ tileView tile hexagon -- or you can say ("poly" `from` txMap)
                , (resourceView . tileResource) tile
                , (unitView gS t . tileUnit) tile
                , (improvementView . tileImprovement) tile

@@ -21,6 +21,7 @@ import GHC.Float (double2Float)
 import Board
 import Drawing
 import GameState
+import qualified Textures
 
 data Env = Env
     { envEventsChan    :: TQueue Event
@@ -316,9 +317,10 @@ adjustWindow = do
 draw glossState = do
     env   <- ask
     state <- get
+    textureMap <- liftIO Textures.textureMap
     liftIO $ displayPicture
                  (windowWidth, windowHeight)
-                  seaColor glossState 1.0 (renderView (stateGameState state))
+                  seaColor glossState 1.0 (renderView textureMap (stateGameState state))
     liftIO $ return ()
   where
     seaColor = makeColorI 10 105 148 1
