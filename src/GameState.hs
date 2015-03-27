@@ -21,7 +21,7 @@ data GameState =
     GameState { tileMapState   :: TileMap
               , mapPosition    :: (Float, Float)
               , mapZoom        :: Float
-              , unitPosition   :: TileCoord
+              , civColor       :: Color
               , nextUnitInLine :: Maybe TileCoord
               , blinkAnimation :: (Float, Bool)
               }
@@ -44,9 +44,9 @@ tilePicture :: TextureMap
 tilePicture txMap gS@GameState{..} t =
     translate x y
     $ pictures [ tileView txMap tile
+               , (improvementView txMap . tileImprovement) tile
                , (resourceView txMap . tileResource) tile
                , (unitView txMap gS t . tileUnit) tile
-               , (improvementView . tileImprovement) tile
                ]
   where
     tile = tileMapState ! t
@@ -57,11 +57,13 @@ tilePicture txMap gS@GameState{..} t =
 unitView :: TextureMap -> GameState -> TileCoord -> Maybe Unit -> Picture
 unitView _ _ _ Nothing = Blank
 unitView txMap GameState{..} coord (Just Unit{..}) =
+  pictures [
     case unitKind of
       Settler -> "settler" `from` txMap
       Worker  -> "worker" `from` txMap
       -- Worker  -> color (blinky red)  $ "worker" `from` txMap
       _       -> Blank
+    , color (blinky civColor) $ thickCircle 80 10 ]
   where
     s = 50
     blinky :: Color -> Color
@@ -83,7 +85,7 @@ initGameState = do
                $ replaceUnit (2,3) (Just $ Unit Worker 1 True)
                $ replaceImprovement (0,0) (Just City)
                randomTMap
-    return $ GameState tMap (0,0) 0.6 (0,0) (Just (0,0)) (1.0, False)
+    return $ GameState tMap (0,0) 0.6 blue (Just (0,0)) (1.0, False)
 
 -- | Moves map to the opposite direction of the key, by the float number given.
 moveMap :: (Float, Float) -- ^ Indicates directions coming from getCursorKeyDirections.
@@ -155,7 +157,7 @@ blink gS@GameState{..} =
   where
     (x, inc) = blinkAnimation
     op = if inc then (+) else (-)
-    i = 0.07 -- offset
+    i = 0.05 -- offset
     y = case () of
         _ | x < 0.3 && not inc -> (x + i, True)
           | x > 0.9 && inc     -> (x - i, False)

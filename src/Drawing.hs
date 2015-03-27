@@ -43,11 +43,11 @@ resourceView txMap (Just r) =
   where s = 12
 
 -- | Basic drawing of an improvement.
-improvementView :: Maybe Improvement -> Picture
-improvementView Nothing = Blank
-improvementView (Just i) =
+improvementView :: TextureMap -> Maybe Improvement -> Picture
+improvementView _ Nothing = Blank
+improvementView txMap (Just i) =
     case i of
-      City    -> color black  $ thickCircle s s
+      City    -> "city1" `from` txMap
       Farm    -> color yellow $ thickCircle s s
       Pasture -> color yellow $ thickCircle s s
       Mine    -> color yellow $ thickCircle s s
